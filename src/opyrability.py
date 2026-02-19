@@ -1424,9 +1424,8 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                                         map_bounds[i, 1],
                                         map_resolution[i])))
 
-    # Check if both EDS parameters are None using identity checks.
-    # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
-    if EDS_bound is None and EDS_resolution is None:
+    # Only populate EDS arrays when both EDS parameters are provided.
+    if EDS_bound is not None and EDS_resolution is not None:
         for i in range(nInput_d):
             Input_d.append(list(np.linspace(EDS_bound[i, 0],
                                             EDS_bound[i, 1],
@@ -1458,9 +1457,8 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         AOS[tuple(inputID)] = model(map_val)
         
     # EDS multidimensional array.
-    # Check if both EDS parameters are None using identity checks.
-    # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
-    if EDS_bound is None and EDS_resolution is None:
+    # Only populate EDS arrays when both EDS parameters are provided.
+    if EDS_bound is not None and EDS_resolution is not None:
         for i in range(numInput_d):
             inputID = [0]*nInput_d
             inputID[0] = int(np.mod(i, EDS_resolution[0]))
