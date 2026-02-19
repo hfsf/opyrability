@@ -465,7 +465,12 @@ def OI_eval(AS: pc.Region,
                     processed_intersection = pc.qhull(v_intersect)
                     final_intersection.append(processed_intersection)
                     v_intersect_list.append(v_intersect)
-                    volumes_i.append(sp.spatial.ConvexHull(v_intersect).volume)
+
+                    # ConvexHull requires >= 2D; for 1D use segment length.
+                    if DS_region.dim == 1:
+                        volumes_i.append(v_intersect.max() - v_intersect.min())
+                    else:
+                        volumes_i.append(sp.spatial.ConvexHull(v_intersect).volume)
             
             each_polytope_volume = np.array(volumes_i)
             intersection_volume = each_polytope_volume[0:].sum()
@@ -473,7 +478,13 @@ def OI_eval(AS: pc.Region,
             v_DS = pc.extreme(DS_region)
             
             # Evaluate OI
-            OI = (intersection_volume / sp.spatial.ConvexHull(v_DS).volume)*100
+            # ConvexHull requires >= 2D; for 1D use segment length.
+            if DS_region.dim == 1:
+                DS_volume = v_DS.max() - v_DS.min()
+            else:
+                DS_volume = sp.spatial.ConvexHull(v_DS).volume
+            OI = (intersection_volume / DS_volume) * 100
+
         else:
             print("For higher dimensions (>7) polytope's hypervolume estimation \
                   is faster. Switching to polytope's calculation.")
@@ -529,7 +540,7 @@ def OI_eval(AS: pc.Region,
                                 linewidth=EDGES_WIDTH,
                                 facecolor=DS_COLOR)
             ax.add_patch(DSplot)
-            ax.legend('DOS')
+            ax.legend(['DOS']) # Pass label as a list to avoid matplotlib treating the string as individual characters.
 
             lower_xaxis = min(AS_region.bounding_box[0][0], 
                               DS_region.bounding_box[0][0])
@@ -1032,7 +1043,7 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
     
     
     if fDIS.shape[1] > 3 and fDOS.shape[1] > 3:
-        plot is False
+        plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
         print('plot not supported. Dimension higher than 3.')
         pass
     else:
@@ -1275,7 +1286,7 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
                 ax.set_title('$DOS*$')   
             else:
                 print('plot not supported. Dimension higher than 3.')
-                plot is False
+                plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
                 pass
         
     return fDIS, fDOS, message_list
