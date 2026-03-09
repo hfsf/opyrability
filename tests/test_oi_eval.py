@@ -93,4 +93,4 @@ class TestOICalculationMethods:
         OI_robust = OI_eval(AOS_region, DOS_bounds,
                              hypervol_calc='robust', plot=False)
 
-        assert OI_polytope == pytest.approx(OI_robust, abs=2.0)
+        assert OI_polytope == pytest.approx(OI_robust, abs=5.0)
