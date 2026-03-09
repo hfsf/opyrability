@@ -319,13 +319,14 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
             
 
         else:
-            print('plot not supported. Dimension greater than 3.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {mapped_region.dim}. '
+                  f'The operability set is still returned.')
             AS_coords = np.concatenate(Vertices_list, axis=0)
 
     else:
-        print('Either plot is not possible (dimension > 3) or you have',
-              'chosen plot=False. The operability set is still returned as',
-              'a polytopic region of general dimension.')
+        print('plot=False selected. The operability set is still returned '
+              'as a polytopic region of general dimension.')
         AS_coords = np.concatenate(Vertices_list, axis=0)
     
     
@@ -684,13 +685,12 @@ def OI_eval(AS: pc.Region,
             plt.show()
 
         elif DS_region.dim > 3:
-            print('plot not supported. Dimension higher than 3d.',
-                  'Nevertheless, the OI value is still available ', 
-                  'for interpretation.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {DS_region.dim}. '
+                  f'The OI value is still available for interpretation.')
     if plot is False:
-        print('You have',
-              'chosen plot=False.', 'Nevertheless, the OI value', 
-              'is still available for interpretation.')
+        print('plot=False selected. The OI value is still available '
+              'for interpretation.')
         
 
         
@@ -1042,8 +1042,8 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
     
     if fDIS.shape[1] > 3 and fDOS.shape[1] > 3:
         plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
-        print('plot not supported. Dimension higher than 3.')
-        pass
+        print(f'Plotting is only supported for 2D and 3D. '
+              f'DIS* has dimension {fDIS.shape[1]}, DOS* has dimension {fDOS.shape[1]}.')
     else:
         if plot is False:
             pass
@@ -1283,9 +1283,9 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
                 
                 ax.set_title('$DOS*$')   
             else:
-                print('plot not supported. Dimension higher than 3.')
+                print(f'Plotting is only supported for 2D and 3D. '
+                      f'DIS* has dimension {fDIS.shape[1]}, DOS* has dimension {fDOS.shape[1]}.')
                 plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
-                pass
         
     return fDIS, fDOS, message_list
 
@@ -1666,7 +1666,9 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 
             
         else:
-            print('dimension greater than 3, plot not supported.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {input_map.shape[-1]} inputs '
+                  f'and {AOS.shape[-1]} outputs.')
             
     else:
         pass
