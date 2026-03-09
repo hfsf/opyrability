@@ -71,7 +71,6 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
     resolution : np.ndarray
         Array containing the resolution of the discretization grid for the AIS or
         DOS. Each element corresponds to the resolution of each variable. For a
-        DOS. Each element corresponds to the resolution of each variable. For a
         resolution defined as k, it will generate d^k points (in which d is the
         dimensionality of the AIS or DOS).
     polytopic_trace: str, Optional.
@@ -172,8 +171,8 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
     elif polytopic_trace =='polyhedra':
         AIS_poly, AOS_poly = points2polyhedra(AIS,AOS)
     else:
-        print('Invalid option for polytopic tracing. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid option for polytopic tracing. Choose '
+                         '"simplices" or "polyhedra".')
         
         
     # Define empty polyopes list.
@@ -491,8 +490,8 @@ def OI_eval(AS: pc.Region,
             OI = (intersection.volume/DS_region.volume)*100
         
     else:
-        print('Invalid hypervolume calculation option. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid hypervolume calculation option. Choose '
+                         '"robust" or "polytope".')
 
 
 
@@ -791,7 +790,6 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
     fDIS: np.ndarray
         Feasible Desired Input Set (DIS*). Array containing the solution for
         each point of the inverse-mapping.
-    fDOS: np.ndarray
     fDOS: np.ndarray
         Feasible Desired Output Set (DOS*). Array containing the feasible
         output for each feasible input calculated via inverse-mapping.
@@ -1512,7 +1510,7 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 ax1.set_title('$AIS_{u}$')
                 ax1.set_ylabel('$u_{2}$')
             else:
-                ax1.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax1.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax1.set_ylabel('$d_{1}$')
            
             
@@ -1553,12 +1551,12 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 ax.set_zlabel('$u_{3}$')
                
             elif EDS_bound.shape[0] == 2:
-                ax.set_title('$AIS_{u} \, and  \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and  \, EDS_{d}$')
                 
                 ax.set_ylabel('$d_{1}$')
                 ax.set_zlabel('$d_{2}$')
             elif EDS_bound.shape[0] == 1:
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$d_{1}$')
                 
@@ -1601,7 +1599,7 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 plt.title('$AIS_{u}$')
                 plt.ylabel('$u_{2}$')
             else:
-                plt.title('$AIS_{u} \, and \, EDS_{d}$')
+                plt.title(r'$AIS_{u} \, and \, EDS_{d}$')
                 plt.ylabel('$d_{1}$')
             
             
@@ -1644,12 +1642,12 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
 
             elif EDS_bound.shape[0] == 2:
                 # Closing $ required for valid LaTeX rendering.
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}$')
-                
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
+
                 ax.set_ylabel('$d_{1}$')
                 ax.set_zlabel('$d_{2}$')
             elif EDS_bound.shape[0] == 1:
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$d_{1}$')
             
@@ -2014,9 +2012,8 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
         dFdi = jacrev(F, 0)
         dFdo = jacrev(F, 1)
     else:
-        print('Currently JAX is the only supported option for \
-              calculating derivatives. Exiting code.')
-        sys.exit()
+        raise ValueError('Currently JAX is the only supported option for '
+                         'calculating derivatives.')
 
                  
 
@@ -2081,11 +2078,9 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
         do_predict = dods
         
     else:
-        print('Ivalid continuation method. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid continuation method. Choose "Explicit RK4", '
+                         '"Explicit Euler", or "odeint".')
       
-    def predict_eEuler(dodi, i0, iplus, o0):
-        return o0 + dodi(i0,o0)@(iplus -i0)
     # This code below is a partial implementation of implicit mapping with a
     # closed path. It works for applications in which the meshgrid can be 
     # inferred from a discrete path.
@@ -2133,7 +2128,7 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
                                             domain_resolution[i])))
 
         domain_set = np.zeros(domain_resolution + [nInput])
-        image_set = np.zeros(domain_resolution + [nInput])*np.nan
+        image_set = np.zeros(domain_resolution + [nOutput])*np.nan
         #  Initialization step: obtaining first solution
         sol = root(F_io, image_init,args=domain_bound[0,:], method=solv_method)
         image_set[0, 0] = sol.x
@@ -2306,7 +2301,7 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
                             image_set[ID_cell] = image_k
                             V_image_id[:,k] = image_k
                             
-                    elif validation == 'Corrector':     
+                    elif validation == 'corrector':     
                         domain_k = domain_set[ID_cell]
                         V_domain_id[:,k] = domain_k
                         
