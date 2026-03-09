@@ -13,8 +13,8 @@ Authors:
 - [Victor Alves](https://github.com/victoraalves)
 - [San Dinh](https://github.com/sanqdinh)
 - [Jonh Kitchin](https://github.com/jkitchin)
-- Vitor Gazzaneo
-- Juan C. Carrasco
+- [Vitor Gazzaneo](https://www.linkedin.com/in/vitor-gazzaneo/)
+- [Juan C. Carrasco](https://www.linkedin.com/in/juancarlos-carrasco-moraga-1649b269/)
 - [Fernando V. Lima](https://github.com/fvlima-codes)
 
 ## Documentation and Process Operability Principles
