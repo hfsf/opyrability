@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          conda install -y numpy scipy matplotlib tqdm polytope cvxopt cyipopt jax
+          conda install -y numpy scipy matplotlib tqdm ipywidgets polytope cvxopt cyipopt jax
           pip install pytest pytest-cov
           pip install -e .
 
