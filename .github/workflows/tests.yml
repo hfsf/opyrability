@@ -33,7 +33,7 @@ jobs:
         run: |
           conda install -y numpy scipy matplotlib tqdm ipywidgets polytope cvxopt cyipopt jax
           pip install pytest pytest-cov
-          pip install -e .
+          pip install --no-deps -e .
 
       - name: Run tests with coverage
         run: |
