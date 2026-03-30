@@ -4,7 +4,6 @@ import warnings
 import string
 from itertools import permutations as perms
 from typing import Callable, Union
-from itertools import permutations as perms
 from typing import Callable, Union
 #from tqdm.notebook import tqdm
 from tqdm.auto import tqdm
@@ -694,6 +693,7 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
                        plot: bool      = True, 
                        ad: bool        = False,
                        warmstart: bool = True,
+                       print_level: int = 5,
                        labels: str = None) -> Union[np.ndarray, np.ndarray, list]:
     '''
     Inverse mapping for Process Operability calculations. From a Desired Output
@@ -765,6 +765,9 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
         Turn on/off warm-start of NLP. If 'on', the sucessful solution of the
         current iteration is used as an estimate to the next one. Default is
         True.
+    print_level: int
+        Verbosity level to use in IPOPT/IPOPT APPSI. Defaults to 5.
+        Check for IPOPT`s print level usage at: <https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_print_level>
     labels: str, Optional.
         labels for axes. Accepts TeX math input as it uses matplotlib math
         rendering. Should be in order u1,u2,u3, y1, y2, y3, and so on: 
@@ -945,7 +948,7 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
             # Solve with ipopt
             solver = pyo.SolverFactory('ipopt')
             # Optional: silence solvers output
-            # solver.options['print_level'] = 0 
+            solver.options['print_level'] = print_level
             res = solver.solve(m, tee=False)
             
             message_list.append(str(res.solver.termination_condition))
@@ -1446,7 +1449,6 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         Discretized Available Input Set (AIS).
     AOS : np.ndarray
         Discretized Available Output Set (AOS).
-        Discretized Available Output Set (AOS).
 
     '''
 
@@ -1457,7 +1459,7 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         if output_dim is None:
             raise ValueError(
                 "For Pyomo/OML models in forward mapping, you SHOULD provide"
-                "the 'output_dim' argument (number of output variables y)"
+                 " the 'output_dim' argument (number of output variables y)"
             )
 
         warnings.warn(
@@ -1492,8 +1494,9 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                     "Using IPOPT APPSI interface for faster simulation.",
                     UserWarning
                 )
-        except:
+        except Exception:
             # Defaults to fallback
+            warnings.warn("Unable to start IPOPT APPSI interface. Defaults to fallback as regular IPOPT interface")
             pass
 
         sim_solver = pyo.SolverFactory(solver_name)
