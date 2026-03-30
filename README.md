@@ -1,6 +1,6 @@
 # Opyrability - Process Operability Analysis in Python.
 
-[![PyPI Downloads](https://static.pepy.tech/badge/opyrability)](https://pepy.tech/projects/opyrability) ![GitHub forks](https://img.shields.io/github/forks/codes-group/opyrability) ![GitHub Repo stars](https://img.shields.io/github/stars/codes-group/opyrability) ![GitHub top language](https://img.shields.io/github/languages/top/codes-group/opyrability) ![Website](https://img.shields.io/website?url=https%3A%2F%2Fcodes-group.github.io%2Fopyrability%2F) ![GitHub License](https://img.shields.io/github/license/codes-group/opyrability) [![DOI](https://joss.theoj.org/papers/10.21105/joss.05966/status.svg)](https://doi.org/10.21105/joss.05966)
+[![PyPI Downloads](https://static.pepy.tech/badge/opyrability)](https://pepy.tech/projects/opyrability) ![GitHub forks](https://img.shields.io/github/forks/codes-group/opyrability) ![GitHub Repo stars](https://img.shields.io/github/stars/CODES-group/opyrability) ![GitHub top language](https://img.shields.io/github/languages/top/codes-group/opyrability) ![Website](https://img.shields.io/website?url=https%3A%2F%2Fcodes-group.github.io%2Fopyrability%2F) ![GitHub License](https://img.shields.io/github/license/codes-group/opyrability) [![DOI](https://joss.theoj.org/papers/10.21105/joss.05966/status.svg)](https://doi.org/10.21105/joss.05966)
 
 
 Welcome to opyrability, a Python-based package for performing [Process Operability](https://www.sciencedirect.com/science/article/pii/S1474667017338028) analysis.
@@ -13,8 +13,8 @@ Authors:
 - [Victor Alves](https://github.com/victoraalves)
 - [San Dinh](https://github.com/sanqdinh)
 - [Jonh Kitchin](https://github.com/jkitchin)
-- Vitor Gazzaneo
-- Juan C. Carrasco
+- [Vitor Gazzaneo](https://www.linkedin.com/in/vitor-gazzaneo/)
+- [Juan C. Carrasco](https://www.linkedin.com/in/juancarlos-carrasco-moraga-1649b269/)
 - [Fernando V. Lima](https://github.com/fvlima-codes)
 
 ## Documentation and Process Operability Principles

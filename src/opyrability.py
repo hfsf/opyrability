@@ -4,7 +4,6 @@ import warnings
 import string
 from itertools import permutations as perms
 from typing import Callable, Union
-from typing import Callable, Union
 #from tqdm.notebook import tqdm
 from tqdm.auto import tqdm
 # Linear Algebra
@@ -74,7 +73,6 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
         lower and upper bound of each AIS or DOS variable.
     resolution : np.ndarray
         Array containing the resolution of the discretization grid for the AIS or
-        DOS. Each element corresponds to the resolution of each variable. For a
         DOS. Each element corresponds to the resolution of each variable. For a
         resolution defined as k, it will generate d^k points (in which d is the
         dimensionality of the AIS or DOS).
@@ -176,8 +174,8 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
     elif polytopic_trace =='polyhedra':
         AIS_poly, AOS_poly = points2polyhedra(AIS,AOS)
     else:
-        print('Invalid option for polytopic tracing. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid option for polytopic tracing. Choose '
+                         '"simplices" or "polyhedra".')
         
         
     # Define empty polyopes list.
@@ -225,10 +223,13 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
             lower_yaxis = mapped_region.bounding_box[0][1]
             upper_yaxis = mapped_region.bounding_box[1][1]
 
-            ax.set_xlim(lower_xaxis - 0.05*lower_xaxis,
-                        upper_xaxis + 0.05*upper_xaxis)
-            ax.set_ylim(lower_yaxis - 0.05*lower_yaxis,
-                        upper_yaxis + 0.05*upper_yaxis)
+            # Use range-based margins to avoid inverted padding on negative coordinates.
+            x_range = upper_xaxis - lower_xaxis
+            y_range = upper_yaxis - lower_yaxis
+            ax.set_xlim(lower_xaxis - 0.05 * x_range,
+                        upper_xaxis + 0.05 * x_range)
+            ax.set_ylim(lower_yaxis - 0.05 * y_range,
+                        upper_yaxis + 0.05 * y_range)
 
             
             AS_patch = mpatches.Patch(color=AS_COLOR, label=AS_label)
@@ -303,11 +304,10 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
             ax.legend(handles=[AS_patch, extra])
 
             if labels is not None:
-                if labels is not None:
-                    if len(labels) != 3:
-                            raise ValueError('You need three entries for your custom '+
-                                      'labels for your 3D system, but entered ' +
-                                      'an incorrect number of labels.')
+                if len(labels) != 3:
+                        raise ValueError('You need three entries for your custom '+
+                                  'labels for your 3D system, but entered ' +
+                                  'an incorrect number of labels.')
                 else:
                     ax.set_xlabel(labels[0])
                     ax.set_ylabel(labels[1])
@@ -322,13 +322,14 @@ def multimodel_rep(model: Callable[...,Union[float,np.ndarray]],
             
 
         else:
-            print('plot not supported. Dimension greater than 3.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {mapped_region.dim}. '
+                  f'The operability set is still returned.')
             AS_coords = np.concatenate(Vertices_list, axis=0)
 
     else:
-        print('Either plot is not possible (dimension > 3) or you have',
-              'chosen plot=False. The operability set is still returned as',
-              'a polytopic region of general dimension.')
+        print('plot=False selected. The operability set is still returned '
+              'as a polytopic region of general dimension.')
         AS_coords = np.concatenate(Vertices_list, axis=0)
     
     
@@ -427,7 +428,11 @@ def OI_eval(AS: pc.Region,
             pass
         else:
             inter_list.append(intersection)
-            
+
+    if len(inter_list) == 0:
+        print('No intersection found between AS and DS. OI = 0.')
+        return 0.0
+
     overlapped_intersection = pc.Region(inter_list)
     min_coord =  overlapped_intersection.bounding_box[0]
     max_coord =  overlapped_intersection.bounding_box[1]
@@ -463,7 +468,12 @@ def OI_eval(AS: pc.Region,
                     processed_intersection = pc.qhull(v_intersect)
                     final_intersection.append(processed_intersection)
                     v_intersect_list.append(v_intersect)
-                    volumes_i.append(sp.spatial.ConvexHull(v_intersect).volume)
+
+                    # ConvexHull requires >= 2D; for 1D use segment length.
+                    if DS_region.dim == 1:
+                        volumes_i.append(v_intersect.max() - v_intersect.min())
+                    else:
+                        volumes_i.append(sp.spatial.ConvexHull(v_intersect).volume)
             
             each_polytope_volume = np.array(volumes_i)
             intersection_volume = each_polytope_volume[0:].sum()
@@ -471,15 +481,21 @@ def OI_eval(AS: pc.Region,
             v_DS = pc.extreme(DS_region)
             
             # Evaluate OI
-            OI = (intersection_volume / sp.spatial.ConvexHull(v_DS).volume)*100
+            # ConvexHull requires >= 2D; for 1D use segment length.
+            if DS_region.dim == 1:
+                DS_volume = v_DS.max() - v_DS.min()
+            else:
+                DS_volume = sp.spatial.ConvexHull(v_DS).volume
+            OI = (intersection_volume / DS_volume) * 100
+
         else:
             print("For higher dimensions (>7) polytope's hypervolume estimation \
                   is faster. Switching to polytope's calculation.")
             OI = (intersection.volume/DS_region.volume)*100
         
     else:
-        print('Invalid hypervolume calculation option. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid hypervolume calculation option. Choose '
+                         '"robust" or "polytope".')
 
 
 
@@ -527,7 +543,7 @@ def OI_eval(AS: pc.Region,
                                 linewidth=EDGES_WIDTH,
                                 facecolor=DS_COLOR)
             ax.add_patch(DSplot)
-            ax.legend('DOS')
+            ax.legend(['DOS']) # Pass label as a list to avoid matplotlib treating the string as individual characters.
 
             lower_xaxis = min(AS_region.bounding_box[0][0], 
                               DS_region.bounding_box[0][0])
@@ -539,10 +555,13 @@ def OI_eval(AS: pc.Region,
             upper_yaxis = max(AS_region.bounding_box[1][1], 
                               DS_region.bounding_box[1][1])
 
-            ax.set_xlim(lower_xaxis - 0.05*lower_xaxis,
-                        upper_xaxis + 0.05*upper_xaxis)
-            ax.set_ylim(lower_yaxis - 0.05*lower_yaxis,
-                        upper_yaxis + 0.05*upper_yaxis)
+            # Use range-based margins to avoid inverted padding on negative coordinates.
+            x_range = upper_xaxis - lower_xaxis
+            y_range = upper_yaxis - lower_yaxis
+            ax.set_xlim(lower_xaxis - 0.05 * x_range,
+                        upper_xaxis + 0.05 * x_range)
+            ax.set_ylim(lower_yaxis - 0.05 * y_range,
+                        upper_yaxis + 0.05 * y_range)
 
             DS_patch = mpatches.Patch(color=DS_COLOR, label=DS_label)
             AS_patch = mpatches.Patch(color=AS_COLOR, label=AS_label)
@@ -669,13 +688,12 @@ def OI_eval(AS: pc.Region,
             plt.show()
 
         elif DS_region.dim > 3:
-            print('plot not supported. Dimension higher than 3d.',
-                  'Nevertheless, the OI value is still available ', 
-                  'for interpretation.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {DS_region.dim}. '
+                  f'The OI value is still available for interpretation.')
     if plot is False:
-        print('You have',
-              'chosen plot=False.', 'Nevertheless, the OI value', 
-              'is still available for interpretation.')
+        print('plot=False selected. The OI value is still available '
+              'for interpretation.')
         
 
         
@@ -779,7 +797,6 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
     fDIS: np.ndarray
         Feasible Desired Input Set (DIS*). Array containing the solution for
         each point of the inverse-mapping.
-    fDOS: np.ndarray
     fDOS: np.ndarray
         Feasible Desired Output Set (DOS*). Array containing the feasible
         output for each feasible input calculated via inverse-mapping.
@@ -1019,9 +1036,6 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
                         sol = DE(p1, bounds=bounds, x0=u0, strategy='best1bin',
                                 maxiter=2000, workers=-1, updating='deferred',
                                 init='sobol', args=(model, DOSPts[i, :]))
-                    
-
-                
 
             else:
                 if method == 'ipopt':
@@ -1085,9 +1099,9 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
         
     
     if fDIS.shape[1] > 3 and fDOS.shape[1] > 3:
-        plot is False
-        print('plot not supported. Dimension higher than 3.')
-        pass
+        plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
+        print(f'Plotting is only supported for 2D and 3D. '
+              f'DIS* has dimension {fDIS.shape[1]}, DOS* has dimension {fDOS.shape[1]}.')
     else:
         if plot is False:
             pass
@@ -1327,9 +1341,9 @@ def nlp_based_approach(model: Callable[..., Union[float, np.ndarray]],
                 
                 ax.set_title('$DOS*$')   
             else:
-                print('plot not supported. Dimension higher than 3.')
-                plot is False
-                pass
+                print(f'Plotting is only supported for 2D and 3D. '
+                      f'DIS* has dimension {fDIS.shape[1]}, DOS* has dimension {fDOS.shape[1]}.')
+                plot = False # Assignment, not comparison: disable plot for high-dimensional cases.
         
     return fDIS, fDOS, message_list
 
@@ -1533,7 +1547,9 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         model = pyomo_simulation_proxy
     
     # Indexing
-    if type(EDS_bound) and type(EDS_resolution) is type(None):
+    # Check if both EDS parameters are None using identity checks.
+    # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
+    if EDS_bound is None and EDS_resolution is None:
         numInput_map = np.prod(AIS_resolution)
         nInput_map = AIS_bound.shape[0]
         map_bounds = AIS_bound
@@ -1557,9 +1573,9 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         Input_map.append(list(np.linspace(map_bounds[i, 0],
                                         map_bounds[i, 1],
                                         map_resolution[i])))
-        
-        
-    if (type(EDS_bound) and type(EDS_resolution)) is not type(None):
+
+    # Only populate EDS arrays when both EDS parameters are provided.
+    if EDS_bound is not None and EDS_resolution is not None:
         for i in range(nInput_d):
             Input_d.append(list(np.linspace(EDS_bound[i, 0],
                                             EDS_bound[i, 1],
@@ -1591,7 +1607,8 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
         AOS[tuple(inputID)] = model(map_val)
         
     # EDS multidimensional array.
-    if (type(EDS_bound) and type(EDS_resolution)) is not type(None):
+    # Only populate EDS arrays when both EDS parameters are provided.
+    if EDS_bound is not None and EDS_resolution is not None:
         for i in range(numInput_d):
             inputID = [0]*nInput_d
             inputID[0] = int(np.mod(i, EDS_resolution[0]))
@@ -1634,7 +1651,7 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 ax1.set_title('$AIS_{u}$')
                 ax1.set_ylabel('$u_{2}$')
             else:
-                ax1.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax1.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax1.set_ylabel('$d_{1}$')
            
             
@@ -1667,18 +1684,20 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
             
             ax.set_xlabel('$u_{1}$')
 
-            if (type(EDS_bound) and type(EDS_resolution)) is type(None):
+            # Check if both EDS parameters are None using identity checks.
+            # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
+            if EDS_bound is None and EDS_resolution is None:
                 ax.set_title('$AIS_{u}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$u_{3}$')
                
             elif EDS_bound.shape[0] == 2:
-                ax.set_title('$AIS_{u} \, and  \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and  \, EDS_{d}$')
                 
                 ax.set_ylabel('$d_{1}$')
                 ax.set_zlabel('$d_{2}$')
             elif EDS_bound.shape[0] == 1:
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$d_{1}$')
                 
@@ -1715,13 +1734,13 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
 
             ax.set_xlabel('$u_{1}$')
 
-            
-
-            if (type(EDS_bound) and type(EDS_resolution)) is type(None):
+            # Check if both EDS parameters are None using identity checks.
+            # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
+            if EDS_bound is None and EDS_resolution is None:
                 plt.title('$AIS_{u}$')
                 plt.ylabel('$u_{2}$')
             else:
-                plt.title('$AIS_{u} \, and \, EDS_{d}$')
+                plt.title(r'$AIS_{u} \, and \, EDS_{d}$')
                 plt.ylabel('$d_{1}$')
             
             
@@ -1755,18 +1774,21 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
 
             ax.set_xlabel('$u_{1}$')
 
-            if (type(EDS_bound) and type(EDS_resolution)) is type(None):
+            # Check if both EDS parameters are None using identity checks.
+            # Avoid `type(x) and type(y) is type(None)` as type() is always truthy.
+            if EDS_bound is None and EDS_resolution is None:
                 ax.set_title('$AIS_{u}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$u_{3}$')
 
             elif EDS_bound.shape[0] == 2:
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}')
-                
+                # Closing $ required for valid LaTeX rendering.
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
+
                 ax.set_ylabel('$d_{1}$')
                 ax.set_zlabel('$d_{2}$')
             elif EDS_bound.shape[0] == 1:
-                ax.set_title('$AIS_{u} \, and \, EDS_{d}$')
+                ax.set_title(r'$AIS_{u} \, and \, EDS_{d}$')
                 ax.set_ylabel('$u_{2}$')
                 ax.set_zlabel('$d_{1}$')
             
@@ -1785,7 +1807,9 @@ def AIS2AOS_map(model: Callable[...,Union[float,np.ndarray]],
                 
             
         else:
-            print('dimension greater than 3, plot not supported.')
+            print(f'Plotting is only supported for 2D and 3D. '
+                  f'Your data has dimension {input_map.shape[-1]} inputs '
+                  f'and {AOS.shape[-1]} outputs.')
             
     else:
         pass
@@ -2001,10 +2025,8 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
                  step_cutting:      bool = False):
     '''
     Performs implicit mapping of an implicitly defined process F(u,y) = 0.
-    Performs implicit mapping of an implicitly defined process F(u,y) = 0.
     F can be a vector-valued, multivariable function, which is typically the 
     case for chemical processes studied in Process Operability. 
-    This method relies on the implicit function theorem and automatic
     This method relies on the implicit function theorem and automatic
     differentiation in order to obtain the mapping of the required 
     input/output space. The
@@ -2142,9 +2164,8 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
         dFdi = jacrev(F, 0)
         dFdo = jacrev(F, 1)
     else:
-        print('Currently JAX is the only supported option for \
-              calculating derivatives. Exiting code.')
-        sys.exit()
+        raise ValueError('Currently JAX is the only supported option for '
+                         'calculating derivatives.')
 
                  
 
@@ -2175,7 +2196,9 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
             h = iplus -i0
             k1 = dodi( i0          ,  o0           )
             k2 = dodi( i0 + (1/2)*h,  o0 + (h/2) @ k1)
-            k3 = dodi( i0 + (1/2)*h,  o0 + (h/2) @ k1)
+            ## RK4 classical scheme: each stage uses the previous stage's estimate.
+            # k1 → k2 → k3 → k4 (do not reuse k1 in k3).
+            k3 = dodi( i0 + (1/2)*h,  o0 + (h/2) @ k2)
             k4 = dodi(np.array(i0+h), o0 +      h@ k3)
             
             return o0 + (1/6)*(k1 + 2*k2 + 2*k3 + k4) @ h
@@ -2207,11 +2230,9 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
         do_predict = dods
         
     else:
-        print('Ivalid continuation method. Exiting algorithm.')
-        sys.exit()
+        raise ValueError('Invalid continuation method. Choose "Explicit RK4", '
+                         '"Explicit Euler", or "odeint".')
       
-    def predict_eEuler(dodi, i0, iplus, o0):
-        return o0 + dodi(i0,o0)@(iplus -i0)
     # This code below is a partial implementation of implicit mapping with a
     # closed path. It works for applications in which the meshgrid can be 
     # inferred from a discrete path.
@@ -2231,12 +2252,15 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
         nInput = domain_set.shape[-1]
         numInput = np.prod([side_length]*d)
         domain_resolution = [side_length]*d  # inferred resolution
-        image_set = np.zeros(domain_resolution + [nInput])*np.nan
+
+        # Pre-allocate image set with nOutput dimensions (not nInput),
+        # as input and output spaces may differ in non-square problems.
+        nOutput = image_init.shape[0]
+        image_set = np.zeros(domain_resolution + [nOutput]) * np.nan
+
         #  Initialization step: obtaining first solution
-        
         sol = root(F_io, image_init,args=domain_points[0,:], method=solv_method)
         image_set[0, 0] = sol.x
-        nOutput = image_init.shape[0]
         
         for i in range(numInput):
             inputID = [0]*nInput
@@ -2256,7 +2280,7 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
                                             domain_resolution[i])))
 
         domain_set = np.zeros(domain_resolution + [nInput])
-        image_set = np.zeros(domain_resolution + [nInput])*np.nan
+        image_set = np.zeros(domain_resolution + [nOutput])*np.nan
         #  Initialization step: obtaining first solution
         sol = root(F_io, image_init,args=domain_bound[0,:], method=solv_method)
         image_set[0, 0] = sol.x
@@ -2429,7 +2453,7 @@ def implicit_map(model:             Callable[...,Union[float,np.ndarray]],
                             image_set[ID_cell] = image_k
                             V_image_id[:,k] = image_k
                             
-                    elif validation == 'Corrector':     
+                    elif validation == 'corrector':     
                         domain_k = domain_set[ID_cell]
                         V_domain_id[:,k] = domain_k
                         
